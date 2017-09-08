@@ -8,7 +8,7 @@
 #
 
 # writes a linker script
-# optional additional parameters: triple of the form
+# optional additional parameters: triples of the form
 # memoryname start size
 function(generate_ldscript
 	 outfile
@@ -17,7 +17,7 @@ function(generate_ldscript
 	 ramAddress ramSize
 )
 	list(LENGTH ARGN argc)
-	message(STATUS "${argc} / ${ARGN}")
+#	message(STATUS "${argc} / ${ARGN}")
 	math(EXPR ntrip "${argc} % 3")
 	if(NOT (ntrip EQUAL 0))
 		message(FATAL_ERROR "invalid additional memory regions")
