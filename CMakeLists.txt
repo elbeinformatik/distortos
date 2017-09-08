@@ -104,6 +104,10 @@ distortos_genconfig()
 # distortos library build setup
 #
 
+add_compile_options(-Wall -Wextra -Wshadow)
+add_compile_options(-std=gnu++11)
+add_compile_options(-ffunction-sections -fdata-sections -fno-rtti -fno-exceptions)
+
 # include directories
 include_directories("${DISTORTOS_INCLUDE_PATH}" "${DISTORTOS_GENERATED_INCLUDE_DIR}")
 foreach(di IN LISTS DISTORTOS_ARCH_INCLUDE_PATH)
