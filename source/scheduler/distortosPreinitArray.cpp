@@ -38,11 +38,13 @@ namespace
  * Calls board::lowLevelInitialization() if it is defined, otherwise does nothing.
  */
 
+#ifndef	CONFIG_BOARDLESS
 void boardLowLevelInitializationWrapper()
 {
 	if (board::lowLevelInitialization != nullptr)
 		board::lowLevelInitialization();
 }
+#endif
 
 /*---------------------------------------------------------------------------------------------------------------------+
 | local types
@@ -61,8 +63,12 @@ const FunctionPointer distortosPreinitArray[] __attribute__ ((section(".preinit_
 		lowLevelInitialization,
 		architecture::lowLevelInitialization,
 		chip::lowLevelInitialization,
+#ifdef	CONFIG_DISTORTOS_DRIVER_ENABLE
 		chip::peripheralsLowLevelInitialization,
+#endif
+#ifndef	CONFIG_BOARDLESS
 		boardLowLevelInitializationWrapper,
+#endif
 		architecture::startScheduling,
 };
 

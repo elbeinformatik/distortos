@@ -8,7 +8,9 @@
 #
 
 ########
-#	find board configurations
+#	find board configurations:
+#	assemble list of known boards in
+#	DISTORTOS_BOARD_NAMES and DISTORTOS_BOARD_DIRECTORIES
 function(distortos_getboards)
 	set(dbb "${CMAKE_SOURCE_DIR}/source/board")
 	set(DISTORTOS_BOARDS_PATH "${dbb}" PARENT_SCOPE)
@@ -23,7 +25,7 @@ function(distortos_getboards)
 		get_filename_component(dbn "${dbp}" NAME_WE)
 		get_filename_component(dbd "${dbp}" DIRECTORY)
 		get_filename_component(dbpdn "${dbd}" NAME)
-#		message(STATUS "Found cmake file ${dbp} in path ${dbd}, basename is ${dbn}, parent dir is ${dbpdn}")
+		message(STATUS "Found cmake file ${dbp} in path ${dbd}, basename is ${dbn}, parent dir is ${dbpdn}")
 
 		# main board cmake config files must have the same base name as their parent directory
 		if(dbn STREQUAL dbpdn)
@@ -40,6 +42,18 @@ function(distortos_getboards)
 	set(DISTORTOS_BOARD_NAMES "${bns}" PARENT_SCOPE)
 endfunction(distortos_getboards)
 
+########
+#	Find chip configurations:
+#	assemble list of known chips in
+#	DISTORTOS_CHIP_NAMES
+function(distortos_getchips)
+	list(APPEND dcn
+		"STM32F769NI"
+	)
+	set(DISTORTOS_CHIP_NAMES "${dcn}" PARENT_SCOPE)
+endfunction(distortos_getchips)
+
+
 # Set a distortos configuration variable. Arguments:
 # <variable name>
 # <value>
@@ -47,13 +61,19 @@ endfunction(distortos_getboards)
 # <ccmake help text>
 # [INTERNAL]
 # [ADVANCED]
-# [VALUES <list of valid values]
+# [VALUES <list of valid values>]
 # [RANGE <valid range>]
 # [DEPENDS <VARNAME=value>]
 # [DEPENDSRANGE <VARNAME=range>]
 function(set_dconf VN VV VT)
 #	message(STATUS "ARGN ist ${ARGN}")
+	list(FIND DISTORTOS_CONFIGS "${VN}" vni)
+	if(vni GREATER_EQUAL 0)
+		message(STATUS "${VN} already set")
+		return()
+	endif()
 	cmake_parse_arguments(S "INTERNAL" "RANGE" "VALUES;DEPENDS;DEPENDSRANGE" ${ARGN})
+#	string(REPLACE ";" "," S_UNPARSED_ARGUMENTS "${S_UNPARSED_ARGUMENTS}")
 	list(LENGTH S_UNPARSED_ARGUMENTS dlen)
 	if(NOT S_INTERNAL)
 		if(NOT (dlen EQUAL 1))
@@ -88,7 +108,7 @@ function(set_dconf VN VV VT)
 	endif()
 
 	# for documentation of each list element, see distortos_genconfig
-	set(dce "${VN}|${VT}")
+	set(dce "${VT}")
 	string(REPLACE ";" "," values "${S_VALUES}")
 	set(dce "${dce}|${values}")
 	string(REPLACE ";" "," range "${S_RANGE}")
@@ -97,9 +117,14 @@ function(set_dconf VN VV VT)
 	set(dce "${dce}|${depends}")
 	string(REPLACE ";" "," dependsrange "${S_DEPENDSRANGE}")
 	set(dce "${dce}|${dependsrange}")
+
+#	message(STATUS "${VN}: ${dce}")
 	set(dc ${DISTORTOS_CONFIGS})
-	list(APPEND dc "${dce}")
+	list(APPEND dc "${VN}")
 	set(DISTORTOS_CONFIGS ${dc} PARENT_SCOPE)
+	set(dcx "${DISTORTOS_CONFIG_VALUES}")
+	list(APPEND dcx "${dce}")
+	set(DISTORTOS_CONFIG_VALUES "${dcx}" PARENT_SCOPE)
 endfunction()
 
 
@@ -116,17 +141,25 @@ endfunction()
 
 function(distortos_genconfig)
 #	message(STATUS "DISTORTOS_CONFIG_REPLACE_PREFIXES = ${DISTORTOS_CONFIG_REPLACE_PREFIXES}")
+	list(LENGTH DISTORTOS_CONFIGS dcl)
+	list(LENGTH DISTORTOS_CONFIG_VALUES dvl)
+	if(NOT(dcl EQUAL dvl))
+		message(FATAL_ERROR "Internal config error")
+	endif()
 	set(dcfg "")
-	foreach(cfg IN LISTS DISTORTOS_CONFIGS)
+	set(cli 0)
+	foreach(cfgvar IN LISTS DISTORTOS_CONFIGS)
+		unset(cfg)
+		list(GET DISTORTOS_CONFIG_VALUES ${cli} cfg)
+		math(EXPR cli "${cli} + 1")
 		string(REPLACE "|" ";" cfglst "${cfg}")
-		list(GET cfglst 0 cfgvar)
-		list(GET cfglst 1 cfgtype)
-		list(GET cfglst 2 cfgvals)
-		list(GET cfglst 3 cfgrange)
-		list(GET cfglst 4 cfgdepends)
-		list(GET cfglst 5 cfgdeprange)
+		list(GET cfglst 0 cfgtype)
+		list(GET cfglst 1 cfgvals)
+		list(GET cfglst 2 cfgrange)
+		list(GET cfglst 3 cfgdepends)
+		list(GET cfglst 4 cfgdeprange)
 		set(cfgval "${${cfgvar}}")
-#		message(STATUS "var=${cfgvar}, val=${cfgval}, type=${cfgtype}, vals=${cfgvals}, range=${cfgrange}, depends=${cfgdepends}, deprange=${cfgdeprange}")
+		message(STATUS "var=${cfgvar}, val=${cfgval}, type=${cfgtype}, vals=${cfgvals}, range=${cfgrange}, depends=${cfgdepends}, deprange=${cfgdeprange}")
 		# delete unwanted variable prefixes
 		foreach(rpref IN LISTS DISTORTOS_CONFIG_REPLACE_PREFIXES)
 			string(REGEX REPLACE "^${rpref}" "" cfgvarnp "${cfgvar}")

@@ -65,12 +65,18 @@ set(tmp_arch_dir "${DISTORTOS_TOPDIR}/source/chip/STM32")
 # add specific #include path
 list(APPEND DISTORTOS_ARCH_INCLUDE_PATH
 	"${tmp_arch_dir}/STM32/include"
-	"${tmp_arch_dir}/peripherals/GPIOv2/include"
-	"${tmp_arch_dir}/peripherals/SPIv2/include"
-	"${tmp_arch_dir}/peripherals/USARTv2/include"
 	"${DISTORTOS_TOPDIR}/external/CMSIS"
 )
 
+if(DISTORTOS_DRIVER_ENABLE)
+list(APPEND DISTORTOS_ARCH_INCLUDE_PATH
+	"${tmp_arch_dir}/peripherals/GPIOv2/include"
+	"${tmp_arch_dir}/peripherals/SPIv2/include"
+	"${tmp_arch_dir}/peripherals/USARTv2/include"
+)
+endif()
+
+if(DISTORTOS_DRIVER_ENABLE)
 # add arch specific source files
 list(APPEND DISTORTOS_SRCS
 	"${tmp_arch_dir}/peripherals/STM32-peripheralsLowLevelInitialization.cpp"
@@ -84,5 +90,6 @@ list(APPEND DISTORTOS_SRCS
 	"${tmp_arch_dir}/peripherals/USARTv2/STM32-USARTv2-usartLowLevelInitialization.cpp"
 	"${tmp_arch_dir}/peripherals/USARTv2/STM32-USARTv2-ChipUartLowLevel.cpp"
 )
+endif()
 
 # STM32 is the most generic family designator, nothing to include

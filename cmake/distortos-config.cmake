@@ -16,6 +16,7 @@ list(APPEND DISTORTOS_CONFIG_REPLACE_PREFIXES "DISTORTOS_")
 #
 # user settable parameters
 #
+set_dconf(DISTORTOS_DRIVER_ENABLE TRUE BOOL "Allow peripheral drivers (in addition to clock)")
 set_dconf(DISTORTOS_TICK_FREQUENCY 1000 INT "Scheduler tick frequency [Hz]")
 set_dconf(DISTORTOS_ROUND_ROBIN_FREQUENCY 10 INT "Scheduler RR frequency [Hz]")
 set_dconf(DISTORTOS_SIGNALS_ENABLE TRUE BOOL "Enable signal functionality")
