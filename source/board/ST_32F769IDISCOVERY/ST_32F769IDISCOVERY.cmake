@@ -36,7 +36,7 @@ set_dconf(BOARD_LEDS_ENABLE 1 BOOL "Enable GPIO for the user LED(s)")
 # add source files
 #
 
-set(tmp_arch_dir "${DISTORTOS_TOPDIR}/source/board/STM32/STM32F7/32F769IDISCOVERY")
+set(tmp_arch_dir "${DISTORTOS_BOARDS_PATH}/${DISTORTOS_BOARD_DIRECTORY}")
 
 # add specific #include path
 list(APPEND DISTORTOS_ARCH_INCLUDE_PATH
@@ -45,6 +45,6 @@ list(APPEND DISTORTOS_ARCH_INCLUDE_PATH
 
 # add board specific source files
 list(APPEND DISTORTOS_SRCS
-	"${tmp_arch_dir}/32F769IDISCOVERY-buttons.cpp"
-	"${tmp_arch_dir}/32F769IDISCOVERY-leds.cpp"
+	"${tmp_arch_dir}/${BOARD}-buttons.cpp"
+	"${tmp_arch_dir}/${BOARD}-leds.cpp"
 )
