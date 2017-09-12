@@ -159,7 +159,7 @@ function(distortos_genconfig)
 		list(GET cfglst 3 cfgdepends)
 		list(GET cfglst 4 cfgdeprange)
 		set(cfgval "${${cfgvar}}")
-		message(STATUS "var=${cfgvar}, val=${cfgval}, type=${cfgtype}, vals=${cfgvals}, range=${cfgrange}, depends=${cfgdepends}, deprange=${cfgdeprange}")
+#		message(STATUS "var=${cfgvar}, val=${cfgval}, type=${cfgtype}, vals=${cfgvals}, range=${cfgrange}, depends=${cfgdepends}, deprange=${cfgdeprange}")
 		# delete unwanted variable prefixes
 		foreach(rpref IN LISTS DISTORTOS_CONFIG_REPLACE_PREFIXES)
 			string(REGEX REPLACE "^${rpref}" "" cfgvarnp "${cfgvar}")
