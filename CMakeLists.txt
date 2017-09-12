@@ -61,7 +61,7 @@ set_dconf(DISTORTOS_BOARDLESS FALSE BOOL "Do not compile for specific board")
 
 if(DISTORTOS_BOARDLESS)
 	unset(BOARD CACHE)
-	# find available boards:
+	# find available CPUs:
 	# generate list DISTORTOS_CHIP_NAMES
 	distortos_getchips()
 	# make sure the target chip is known
