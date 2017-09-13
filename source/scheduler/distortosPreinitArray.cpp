@@ -63,7 +63,7 @@ const FunctionPointer distortosPreinitArray[] __attribute__ ((section(".preinit_
 		lowLevelInitialization,
 		architecture::lowLevelInitialization,
 		chip::lowLevelInitialization,
-#ifdef	CONFIG_DISTORTOS_DRIVER_ENABLE
+#ifndef	CONFIG_DRIVERLESS
 		chip::peripheralsLowLevelInitialization,
 #endif
 #ifndef	CONFIG_BOARDLESS
