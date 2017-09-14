@@ -18,6 +18,8 @@ set_dconf(CHIP_STM32F7 TRUE BOOL INTERNAL)
 # fixed configuration
 #
 set_dconf(CHIP_STM32F7_RCC_HSE_CLOCK_BYPASS TRUE BOOL INTERNAL)
+set_dconf(CHIP_STM32F7_ITCM_SIZE 16384 INT INTERNAL)
+set_dconf(CHIP_STM32F7_ITCM_ADDRESS 0x0 HEXINT INTERNAL)
 set_dconf(CHIP_STM32F7_DTCM_SIZE 131072 INT INTERNAL)
 set_dconf(CHIP_STM32F7_DTCM_ADDRESS 0x20000000 HEXINT INTERNAL)
 set_dconf(CHIP_STM32F7_SRAM1_SIZE 376832 INT INTERNAL)
@@ -81,7 +83,7 @@ set_dconf(CHIP_STM32F7_RCC_PPRE1 ${CHIP_STM32F7_RCC_APB1_DIV} INT INTERNAL)
 set_dconf(CHIP_STM32F7_RCC_PPRE2 ${CHIP_STM32F7_RCC_APB2_DIV} INT INTERNAL)
 set_dconf(CHIP_STM32F7_FLASH_PREFETCH_ENABLE TRUE BOOL "Enable prefetch for Flash reads")
 set_dconf(CHIP_STM32F7_FLASH_ART_ACCELERATOR_ENABLE TRUE BOOL "Enable ART accelerator")
-set_dconf(CHIP_STM32F7_UNIFY_DTCM_SRAM1_SRAM2 TRUE BOOL "Use combined DTCM, SRAM1 and SRAM2 for the heap")
+set_dconf(CHIP_STM32F7_UNIFY_DTCM_SRAM1_SRAM2 TRUE BOOL "Use combined DTCM, SRAM1 and SRAM2 for all RAM sections")
 
 #
 # add source files
@@ -105,19 +107,24 @@ list(APPEND DISTORTOS_SRCS
 #
 # Linker script settings
 #
-set(LDSCRIPT_RAM_BEGIN ${CHIP_STM32F7_DTCM_ADDRESS})
 if(CHIP_STM32F7_UNIFY_DTCM_SRAM1_SRAM2)
-	math(EXPR LDSCRIPT_RAM_SIZE "${CHIP_STM32F7_DTCM_SIZE} + ${CHIP_STM32F7_SRAM1_SIZE} + ${CHIP_STM32F7_SRAM2_SIZE}")
+	set(UNIFIED_RAM_SECTION "sram")
+	remove_memory_region("dtcm")
+	remove_memory_region("sram1")
+	remove_memory_region("sram2")
+	set(LDSCRIPT_RAM_BEGIN ${CHIP_STM32F7_DTCM_ADDRESS})
+	hexmath(EXPR LDSCRIPT_RAM_SIZE "${CHIP_STM32F7_DTCM_SIZE} + ${CHIP_STM32F7_SRAM1_SIZE} + ${CHIP_STM32F7_SRAM2_SIZE}")
+	add_memory_region(${UNIFIED_RAM_SECTION} "${LDSCRIPT_RAM_BEGIN}" "${LDSCRIPT_RAM_SIZE}" "RAM" ALLOWED_SECTIONS text data bss noinit heap stack main_stack process_stack)
 else()
-	set(LDSCRIPT_RAM_SIZE "${CHIP_STM32F7_DTCM_SIZE}")
-	list(APPEND LDSCRIPT_RAM_REGIONS
-		"sram1" "${CHIP_STM32F7_SRAM1_ADDRESS}" "${CHIP_STM32F7_SRAM1_SIZE}"
-		"sram2" "${CHIP_STM32F7_SRAM2_ADDRESS}" "${CHIP_STM32F7_SRAM2_SIZE}"
-	)
+	set(UNIFIED_RAM_SECTION FALSE)
+	remove_memory_region("sram")
+	add_memory_region("dtcm" "${CHIP_STM32F7_DTCM_ADDRESS}" "${CHIP_STM32F7_DTCM_SIZE}" "RAM" ALLOWED_SECTIONS text data bss noinit heap stack main_stack process_stack)
+	add_memory_region("sram1" "${CHIP_STM32F7_SRAM1_ADDRESS}" "${CHIP_STM32F7_SRAM1_SIZE}" "RAM" ALLOWED_SECTIONS text data bss noinit heap stack main_stack process_stack)
+	add_memory_region("sram2" "${CHIP_STM32F7_SRAM2_ADDRESS}" "${CHIP_STM32F7_SRAM2_SIZE}" "RAM" ALLOWED_SECTIONS text data bss noinit heap stack main_stack process_stack)
 endif()
-list(APPEND LDSCRIPT_RAM_REGIONS
-	"bkpsram" "${CHIP_STM32F7_BKPSRAM_ADDRESS}" "${CHIP_STM32F7_BKPSRAM_SIZE}"
-)
+
+add_memory_region("itcm" "${CHIP_STM32F7_ITCM_ADDRESS}" "${CHIP_STM32F7_ITCM_SIZE}" "RAM" ALLOWED_SECTIONS text)
+add_memory_region("bkpsram" "${CHIP_STM32F7_BKPSRAM_ADDRESS}" "${CHIP_STM32F7_BKPSRAM_SIZE}" "RAM" PROVIDE_SEPARATE_NOINIT)
 
 # include more generic CPU definitions
 include(STM32)

@@ -27,7 +27,6 @@ include(ldscript)
 
 set(DISTORTOS_LDSCRIPT_PATH "${CMAKE_BINARY_DIR}")
 set(DISTORTOS_LDSCRIPT_FILE "distortos.ld")
-set(DISTORTOS_SYBOLSLD_FILE "symbols.ld")
 
 #
 # project definitions
@@ -51,13 +50,16 @@ set(DISTORTOS_CONFIG_VALUES "")
 # TODO: rather use these prefixes in the source code.
 set(DISTORTOS_CONFIG_REPLACE_PREFIXES "")
 
-# include distortos configs
-include(distortos-config)
-
-# unset any ldscript RAM definitions
-set(LDSCRIPT_RAM_REGIONS "")
-
+#
+# Global parameters
+#
 set_dconf(DISTORTOS_BOARDLESS FALSE BOOL "Do not compile for specific board")
+set_dconf(DISTORTOS_DRIVERLESS FALSE BOOL "Disable all peripheral drivers (GPIO, UART, SPI, ...)")
+if(DISTORTOS_DRIVERLESS)
+	set(DISTORTOS_DRIVER_ENABLE FALSE)
+else()
+	set(DISTORTOS_DRIVER_ENABLE TRUE)
+endif()
 
 if(DISTORTOS_BOARDLESS)
 	unset(BOARD CACHE)
@@ -112,6 +114,9 @@ set_dconf(TEST_APPLICATION_ENABLE FALSE BOOL "Build test application")
 # include CPU configs
 include(${CHIP})
 
+# include distortos configs
+include(distortos-config)
+
 set(DISTORTOS_GENERATED_INCLUDE_DIR ${CMAKE_BINARY_DIR}/include)
 set(DISTORTOS_CFG_DIR ${DISTORTOS_GENERATED_INCLUDE_DIR}/distortos)
 set(DISTORTOS_CFG_FILE distortosConfiguration.h)
@@ -137,18 +142,27 @@ endforeach()
 add_library(distortos STATIC ${DISTORTOS_SRCS})
 
 # generate linker script
-hexmath(HEX rombegin "${DISTORTOS_LDSCRIPT_ROM_BEGIN} + ${CHIP_ROM_ADDRESS}")
-hexmath(EXPR romsize "${DISTORTOS_LDSCRIPT_ROM_END} - ${DISTORTOS_LDSCRIPT_ROM_BEGIN}")
-generate_ldscript("${DISTORTOS_LDSCRIPT_PATH}/${DISTORTOS_LDSCRIPT_FILE}"
-	"${CHIP}"
-	"${rombegin}"
-	"${DISTORTOS_LDSCRIPT_ROM_END}"
-	"${LDSCRIPT_RAM_BEGIN}"
-	"${LDSCRIPT_RAM_SIZE}"
-	${LDSCRIPT_RAM_REGIONS}
-)
-
-generate_symbolsld("${DISTORTOS_LDSCRIPT_PATH}/${DISTORTOS_SYBOLSLD_FILE}")
+if(NOT DEFINED UNIFIED_RAM_SECTION)
+	message(FATAL_ERROR "Internal configuration error: UNIFIED_RAM_SECTION is not defined!")
+endif()
+if(UNIFIED_RAM_SECTION)
+	generate_ldscript("${DISTORTOS_LDSCRIPT_PATH}/${DISTORTOS_LDSCRIPT_FILE}"
+		"${CHIP}"
+		ROM "flash"
+		RAM "sram"
+	)
+else()
+	generate_ldscript("${DISTORTOS_LDSCRIPT_PATH}/${DISTORTOS_LDSCRIPT_FILE}"
+		"${CHIP}"
+		ROM "flash"
+		DATA_MEM "${DISTORTOS_MEMORY_DATA}"
+		BSS_MEM "${DISTORTOS_MEMORY_BSS}"
+		NOINIT_MEM "${DISTORTOS_MEMORY_NOINIT}"
+		HEAP_MEM "${DISTORTOS_MEMORY_HEAP}"
+		PROCESS_STACK_MEM "${DISTORTOS_MEMORY_PROCSTACK}"
+		MAIN_STACK_MEM "${DISTORTOS_MEMORY_MAINSTACK}"
+	)
+endif()
 
 #
 # Build settings for test application
@@ -162,7 +176,6 @@ if(TEST_APPLICATION_ENABLE)
 		-Wl,--whole-archive distortos -Wl,--no-whole-archive
 		-Wl,-Map=${CMAKE_BINARY_DIR}/${dtest}.map,--cref,--gc-sections
 		-T${DISTORTOS_LDSCRIPT_PATH}/${DISTORTOS_LDSCRIPT_FILE}
-		-T${DISTORTOS_LDSCRIPT_PATH}/${DISTORTOS_SYBOLSLD_FILE}
 	)
 	target_include_directories(${dtarg} PUBLIC "${DISTORTOS_TOPDIR}/test")
 

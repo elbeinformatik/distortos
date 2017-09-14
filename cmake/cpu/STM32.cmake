@@ -142,4 +142,9 @@ list(APPEND DISTORTOS_SRCS
 )
 endif()
 
+#
+# linker script settings
+#
+add_memory_region("flash" "${CHIP_ROM_ADDRESS}" ${CHIP_ROM_SIZE} "ROM" VMADDR "${CHIP_ROM_VADDR}")
+
 # STM32 is the most generic family designator, nothing to include
