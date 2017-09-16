@@ -201,7 +201,7 @@ endfunction(get_process_stack_regions rlst)
 # RAMTEXT_SECTION <section name>: Place this section into the RAM memory region RAMTEXT_MEM,
 #				load it to S_ROM and place an entry into data_array
 # RAMTEXT_MEM <memory region>: For the RAMTEXT_SECTION
-#
+# ENABLE_FINI <bool>: Enable/disable .fini section
 #--------------
 # The general section allocation sequence per memory region is
 # .<region>.data .<region>.bss .<region>.noinit .data .bss .noinit heap psp-stack msp-stack
@@ -565,7 +565,7 @@ function(generate_ldscript
 		"		. = ALIGN(4);\n"
 		"		PROVIDE(__init_array_start = .);\n"
 		"\n"
-		"		KEEP(*(SORT(.init_array.*)));\n"
+		"		KEEP(*(SORT_BY_INIT_PRIORITY(.init_array.*)));\n"
 		"		KEEP(*(.init_array));\n"
 		"\n"
 		"		. = ALIGN(4);\n"
@@ -573,15 +573,21 @@ function(generate_ldscript
 		"\n"
 		"		KEEP(*(.fini));\n"
 		"\n"
-		"		. = ALIGN(4);\n"
-		"		PROVIDE(__fini_array_start = .);\n"
-		"\n"
-		"		KEEP(*(.fini_array));\n"
-		"		KEEP(*(SORT(.fini_array.*)));\n"
-		"\n"
-		"		. = ALIGN(4);\n"
-		"		PROVIDE(__fini_array_end = .);\n"
-		"\n"
+	)
+	if(S_ENABLE_FINI)
+		string(CONCAT DISTORTOS_LDSCRIPT "${DISTORTOS_LDSCRIPT}"
+			"		. = ALIGN(4);\n"
+			"		PROVIDE(__fini_array_start = .);\n"
+			"\n"
+			"		KEEP(*(.fini_array));\n"
+			"		KEEP(*(SORT_BY_INIT_PRIORITY(.fini_array.*)));\n"
+			"\n"
+			"		. = ALIGN(4);\n"
+			"		PROVIDE(__fini_array_end = .);\n"
+			"\n"
+		)
+	endif()
+	string(CONCAT DISTORTOS_LDSCRIPT "${DISTORTOS_LDSCRIPT}"
 		"		/* end of sub-sections: init, preinit_array, init_array and fini_array */\n"
 		"\n"
 		"		. = ALIGN(4);\n"

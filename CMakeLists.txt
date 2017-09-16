@@ -129,10 +129,15 @@ distortos_genconfig()
 # distortos library build setup
 #
 
+# CXX compiler flags
 add_compile_options(-Wall -Wextra -Wshadow)
 add_compile_options(-std=gnu++11)
 add_compile_options(-ffunction-sections -fdata-sections -fno-rtti -fno-exceptions)
-
+if(DISTORTOS_STATIC_DESTRUCTORS_RUN_TIME_REGISTRATION_ENABLE)
+	string(REPLACE "-fno-use-cxa-atexit" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+else()
+	add_compile_options(-fno-use-cxa-atexit)
+endif()
 # include directories
 include_directories("${DISTORTOS_INCLUDE_PATH}" "${DISTORTOS_GENERATED_INCLUDE_DIR}")
 foreach(di IN LISTS DISTORTOS_ARCH_INCLUDE_PATH)
@@ -150,6 +155,7 @@ if(UNIFIED_RAM_SECTION)
 		"${CHIP}"
 		ROM "flash"
 		RAM "sram"
+		ENABLE_FINI "${DISTORTOS_STATIC_DESTRUCTORS_ENABLE}"
 	)
 else()
 	generate_ldscript("${DISTORTOS_LDSCRIPT_PATH}/${DISTORTOS_LDSCRIPT_FILE}"
@@ -161,6 +167,7 @@ else()
 		HEAP_MEM "${DISTORTOS_MEMORY_HEAP}"
 		PROCESS_STACK_MEM "${DISTORTOS_MEMORY_PROCSTACK}"
 		MAIN_STACK_MEM "${DISTORTOS_MEMORY_MAINSTACK}"
+		ENABLE_FINI "${DISTORTOS_STATIC_DESTRUCTORS_ENABLE}"
 	)
 endif()
 
