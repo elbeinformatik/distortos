@@ -150,12 +150,21 @@ add_library(distortos STATIC ${DISTORTOS_SRCS})
 if(NOT DEFINED UNIFIED_RAM_SECTION)
 	message(FATAL_ERROR "Internal configuration error: UNIFIED_RAM_SECTION is not defined!")
 endif()
+if(DISTORTOS_MEMORY_ENABLE_RAMTEXT)
+	if(NOT DISTORTOS_RAMTEXT_SECTION)
+		message(FATAL_ERROR "Empty section name for ram text")
+	endif()
+	set(_rtargs RAMTEXT_SECTION ${DISTORTOS_RAMTEXT_SECTION} RAMTEXT_MEM ${DISTORTOS_MEMORY_RAMTEXT})
+else()
+	unset(_rtargs)
+endif()
 if(UNIFIED_RAM_SECTION)
 	generate_ldscript("${DISTORTOS_LDSCRIPT_PATH}/${DISTORTOS_LDSCRIPT_FILE}"
 		"${CHIP}"
 		ROM "flash"
 		RAM "sram"
 		ENABLE_FINI "${DISTORTOS_STATIC_DESTRUCTORS_ENABLE}"
+		${_rtargs}
 	)
 else()
 	generate_ldscript("${DISTORTOS_LDSCRIPT_PATH}/${DISTORTOS_LDSCRIPT_FILE}"
@@ -168,6 +177,7 @@ else()
 		PROCESS_STACK_MEM "${DISTORTOS_MEMORY_PROCSTACK}"
 		MAIN_STACK_MEM "${DISTORTOS_MEMORY_MAINSTACK}"
 		ENABLE_FINI "${DISTORTOS_STATIC_DESTRUCTORS_ENABLE}"
+		${_rtargs}
 	)
 endif()
 

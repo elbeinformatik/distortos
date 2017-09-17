@@ -120,7 +120,10 @@ function(get_ram_regions section rlst)
 	foreach(mr IN LISTS MEMORY_REGIONS)
 		get_memoryinfo(${mr} mt vr)
 		if(mt STREQUAL "RAM")
-			list(APPEND ret "${mr}")
+			list(FIND vr "${section}" si)
+			if(si GREATER_EQUAL 0)
+				list(APPEND ret "${mr}")
+			endif()
 		endif()
 	endforeach()
 	list(LENGTH ret mrc)
@@ -134,6 +137,14 @@ endfunction(get_ram_regions rlst)
 # Currently, we believe in all RAMs having been created equal
 # TODO: Use allowed sections instead
 #
+
+# create a list with valid memory regions for the data section
+function(get_text_regions rlst)
+	set(ret)
+	get_ram_regions("text" ret)
+	set(${rlst} "${ret}" PARENT_SCOPE)
+endfunction(get_text_regions rlst)
+
 # create a list with valid memory regions for the data section
 function(get_data_regions rlst)
 	set(ret)
@@ -224,6 +235,15 @@ function(generate_ldscript
 	if(NOT (mt STREQUAL "ROM"))
 		message(FATAL_ERROR "generate_ldscript(): argument ROM ${S_ROM} does not denote a ROM memory region")
 	endif()
+
+	# If text should be copied into RAM, the memory should be RAM allowed for .text
+	if(S_RAMTEXT_MEM)
+		get_memoryinfo(${S_RAMTEXT_MEM} mt vs CHECK_SECTION_ALLOWED "text")
+		if(NOT (mt STREQUAL "RAM"))
+			message(FATAL_ERROR "generate_ldscript(): argument RAMTEXT_MEM ${S_RAMTEXT_MEM} does not denote a RAM memory region")
+		endif()
+	endif()
+
 	if(NOT S_VADDRSUFFIX)
 		set(S_VADDRSUFFIX "Vma")
 	endif()
@@ -334,70 +354,92 @@ function(generate_ldscript
 		    "PROVIDE(__${memoryName}_end = ORIGIN(${memoryName}) + LENGTH(${memoryName}));\n\n"
 		)
 
-		if(memoryType STREQUAL "RAM" AND sepData)
-			string(CONCAT dataArrayEntries "${dataArrayEntries}"
-			    "\t\tLONG(LOADADDR(.${memoryName}.data)); LONG(ADDR(.${memoryName}.data)); "
-			    "LONG(ADDR(.${memoryName}.data) + SIZEOF(.${memoryName}.data));\n"
-			)
-			string(CONCAT sectionEntries "${sectionEntries}"
-				"	.${memoryName}.data :\n"
-				"	{\n"
-				"		. = ALIGN(4);\n"
-				"		PROVIDE(__${memoryName}_data_init_start = LOADADDR(.${memoryName}.data));\n"
-				"		PROVIDE(__${memoryName}_data_start = .);\n\n"
-				"		*(.${memoryName}.data);\n\n"
-				"		. = ALIGN(4);\n"
-				"		PROVIDE(__${memoryName}_data_end = .);\n"
-				"	} > ${memoryName} AT > ${ROMNAME}\n\n"
-			)
-			string(CONCAT sectionSizes "${sectionSizes}"
-				"PROVIDE(__${memoryName}_data_size = SIZEOF(.${memoryName}.data));\n"
-			)
-			# check for heap above separate data section
-			if(have_heap)
-				set(HEAP_LOW "__${memoryName}_data_end")
+		if(memoryType STREQUAL "RAM")
+			if(memoryName STREQUAL S_RAMTEXT_MEM)
+				string(CONCAT dataArrayEntries "${dataArrayEntries}"
+				    "\t\tLONG(LOADADDR(.${memoryName}.ramtext)); LONG(ADDR(.${memoryName}.ramtext)); "
+				    "LONG(ADDR(.${memoryName}.ramtext) + SIZEOF(.${memoryName}.ramtext));\n"
+				)
+				string(CONCAT sectionEntries "${sectionEntries}"
+					"	.${memoryName}.ramtext :\n"
+					"	{\n"
+					"		. = ALIGN(4);\n"
+					"		*(${S_RAMTEXT_SECTION});\n\n"
+					"	} > ${memoryName} AT > ${ROMNAME}\n\n"
+				)
+				string(CONCAT sectionSizes "${sectionSizes}"
+					"PROVIDE(__${memoryName}_data_size = SIZEOF(.${memoryName}.data));\n"
+				)
+				# check for heap above separate data section
+				if(have_heap)
+					set(HEAP_LOW "__${memoryName}_data_end")
+				endif()
 			endif()
-		endif()
-		if(memoryType STREQUAL "RAM" AND sepBss)
-			string(CONCAT bssArrayEntries "${bssArrayEntries}"
-			    "\t\tLONG(0); LONG(ADDR(.${memoryName}.bss)); LONG(ADDR(.${memoryName}.bss) + SIZEOF(.${memoryName}.bss));\n"
-			)
+			if(sepData)
+				string(CONCAT dataArrayEntries "${dataArrayEntries}"
+				    "\t\tLONG(LOADADDR(.${memoryName}.data)); LONG(ADDR(.${memoryName}.data)); "
+				    "LONG(ADDR(.${memoryName}.data) + SIZEOF(.${memoryName}.data));\n"
+				)
+				string(CONCAT sectionEntries "${sectionEntries}"
+					"	.${memoryName}.data :\n"
+					"	{\n"
+					"		. = ALIGN(4);\n"
+					"		PROVIDE(__${memoryName}_data_init_start = LOADADDR(.${memoryName}.data));\n"
+					"		PROVIDE(__${memoryName}_data_start = .);\n\n"
+					"		*(.${memoryName}.data);\n\n"
+					"		. = ALIGN(4);\n"
+					"		PROVIDE(__${memoryName}_data_end = .);\n"
+					"	} > ${memoryName} AT > ${ROMNAME}\n\n"
+				)
+				string(CONCAT sectionSizes "${sectionSizes}"
+					"PROVIDE(__${memoryName}_data_size = SIZEOF(.${memoryName}.data));\n"
+				)
+				# check for heap above separate data section
+				if(have_heap)
+					set(HEAP_LOW "__${memoryName}_data_end")
+				endif()
+			endif()
+			if(sepBss)
+				string(CONCAT bssArrayEntries "${bssArrayEntries}"
+				    "\t\tLONG(0); LONG(ADDR(.${memoryName}.bss)); LONG(ADDR(.${memoryName}.bss) + SIZEOF(.${memoryName}.bss));\n"
+				)
 
-			string(CONCAT sectionEntries "${sectionEntries}"
-				"	.${memoryName}.bss :\n"
-				"	{\n"
-				"		. = ALIGN(4);\n"
-				"		PROVIDE(__${memoryName}_bss_start = .);\n\n"
-				"		*(.${memoryName}.bss);\n\n"
-				"		. = ALIGN(4);\n"
-				"		PROVIDE(__${memoryName}_bss_end = .);\n"
-				"	} > ${memoryName} AT > ${memoryName}\n\n"
-			)
-			string(CONCAT sectionSizes "${sectionSizes}"
-				"PROVIDE(__${memoryName}_bss_size = SIZEOF(.${memoryName}.bss));\n"
-			)
-			# check for heap above separate bss section
-			if(have_heap)
-				set(HEAP_LOW "__${memoryName}_bss_end")
+				string(CONCAT sectionEntries "${sectionEntries}"
+					"	.${memoryName}.bss :\n"
+					"	{\n"
+					"		. = ALIGN(4);\n"
+					"		PROVIDE(__${memoryName}_bss_start = .);\n\n"
+					"		*(.${memoryName}.bss);\n\n"
+					"		. = ALIGN(4);\n"
+					"		PROVIDE(__${memoryName}_bss_end = .);\n"
+					"	} > ${memoryName} AT > ${memoryName}\n\n"
+				)
+				string(CONCAT sectionSizes "${sectionSizes}"
+					"PROVIDE(__${memoryName}_bss_size = SIZEOF(.${memoryName}.bss));\n"
+				)
+				# check for heap above separate bss section
+				if(have_heap)
+					set(HEAP_LOW "__${memoryName}_bss_end")
+				endif()
 			endif()
-		endif()
-		if(memoryType STREQUAL "RAM" AND sepNoinit)
-			string(CONCAT sectionEntries "${sectionEntries}"
-				"	.${memoryName}.noinit (NOLOAD) :\n"
-				"	{\n"
-				"		. = ALIGN(4);\n"
-				"		PROVIDE(__${memoryName}_noinit_start = .);\n\n"
-				"		*(.${memoryName}.noinit);\n\n"
-				"		. = ALIGN(4);\n"
-				"		PROVIDE(__${memoryName}_noinit_end = .);\n"
-				"	} > ${memoryName} AT > ${memoryName}\n\n"
-			)
-			string(CONCAT sectionSizes "${sectionSizes}"
-				"PROVIDE(__${memoryName}_noinit_size = SIZEOF(.${memoryName}.noinit));\n"
-			)
-			# check for heap above separate noinit section
-			if(have_heap)
-				set(HEAP_LOW "__${memoryName}_noinit_end")
+			if(sepNoinit)
+				string(CONCAT sectionEntries "${sectionEntries}"
+					"	.${memoryName}.noinit (NOLOAD) :\n"
+					"	{\n"
+					"		. = ALIGN(4);\n"
+					"		PROVIDE(__${memoryName}_noinit_start = .);\n\n"
+					"		*(.${memoryName}.noinit);\n\n"
+					"		. = ALIGN(4);\n"
+					"		PROVIDE(__${memoryName}_noinit_end = .);\n"
+					"	} > ${memoryName} AT > ${memoryName}\n\n"
+				)
+				string(CONCAT sectionSizes "${sectionSizes}"
+					"PROVIDE(__${memoryName}_noinit_size = SIZEOF(.${memoryName}.noinit));\n"
+				)
+				# check for heap above separate noinit section
+				if(have_heap)
+					set(HEAP_LOW "__${memoryName}_noinit_end")
+				endif()
 			endif()
 		endif()
 		# check for heap above standard sections
