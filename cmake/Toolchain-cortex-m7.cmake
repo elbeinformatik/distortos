@@ -37,8 +37,13 @@ SET(CMAKE_RANLIB        ${TARGET_TRIPLE}-${BPMOD}ranlib CACHE STRING "Static lib
 # SET(CMAKE_ASM_COMPILER  ${TARGET_TRIPLE}-gcc)
 # enable_language(ASM)
 
+# uncomment if unknown
 # set(CMAKE_OBJCOPY	${TARGET_TRIPLE}-objcopy)
 # set(CMAKE_OBJDUMP	${TARGET_TRIPLE}-objdump)
+
+# normally, newlib doesn't define _exit. then, even simple try_compile tests will fail.
+# see https://cmake.org/cmake/help/latest/variable/CMAKE_TRY_COMPILE_TARGET_TYPE.html
+set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 
 # where is the target environment
 SET(CMAKE_FIND_ROOT_PATH  /opt/cross/arm-none-eabi/arm-none-eabi/sysroot)
