@@ -19,6 +19,9 @@ documentation/html/
 .settings/
 *.launch
 
+# VS project folder
+.vs
+
 # other
 .gdbinit
 __pycache__

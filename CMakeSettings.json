@@ -1,0 +1,15 @@
+{
+    // Informationen zu dieser Datei finden Sie unter https://go.microsoft.com//fwlink//?linkid=834763.
+  "configurations": [
+    {
+      "name": "arm-m7-MinSizeRel",
+      "generator": "Ninja",
+      "configurationType": "MinSizeRel",
+      "inheritEnvironments": [ "msvc_x64" ],
+      "buildRoot": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\build\\${name}",
+      "cmakeCommandArgs": "-DCMAKE_TOOLCHAIN_FILE=${projectDir}/cmake/Toolchain-cortex-m7.cmake -DBOARD=ST_32F769IDISCOVERY -DTEST_APPLICATION_ENABLE=ON",
+      "buildCommandArgs": "-v",
+      "ctestCommandArgs": ""
+    }
+  ]
+}
